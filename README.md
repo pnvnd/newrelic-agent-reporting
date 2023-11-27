@@ -5,20 +5,17 @@ This repository contains a collection of PowerShell scripts designed to interact
 ### Scripts Overview
 
 **APM and Infra Agent List (Script version: 1.5):**
-
-Fetches a list of sub-account IDs from New Relic's NrDailyUsage.
+- Fetches a list of sub-account IDs from New Relic's NrDailyUsage.
 For each sub-account, it queries APM and Infrastructure agent data.
 Results are saved in apm_results.txt and infra_results.txt.
 
 **Mobile Agent List (Script version: 1.9):**
-
-Retrieves unique consuming account IDs from NrConsumption.
+- Retrieves unique consuming account IDs from NrConsumption.
 For each account, runs a query related to Mobile agents.
 Results are formatted as a comma-separated list and saved in mobile_results.txt.
 
 **Synthetics Agent List (Script version: 2.0):**
-
-Similar to the Mobile Agent script, but focused on Synthetics agents.
+- Similar to the Mobile Agent script, but focused on Synthetics agents.
 Fetches Synthetics agent data for each consuming account ID.
 Outputs are stored in synthetics_results.txt.
 
