@@ -4,6 +4,12 @@ This repository contains a collection of PowerShell scripts designed to interact
 
 ### Scripts Overview
 
+Before running the script set the following environment variables:
+```pwsh
+$Env:NEW_RELIC_USER_KEY = "NRAK-XXXXXXXXXXXXXXXXXXXXXXXXXXX"
+$Env:NEW_RELIC_ACCOUNT_ID = "1234567"
+```
+
 **APM and Infra Agent List (Script version: 1.5):**
 - Fetches a list of sub-account IDs from New Relic's NrDailyUsage.
 For each sub-account, it queries APM and Infrastructure agent data.
