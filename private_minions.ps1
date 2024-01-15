@@ -1,10 +1,16 @@
+#!/usr/bin/env pwsh
+
 # Script version: 2.0 - Synthetics agent list results saved to a file
 
-# Generate a User API Key for a personal account
-$API_KEY = $Env:NEW_RELIC_USER_KEY  # Replace with your actual New Relic User API Key
-
-# Master account ID
-$MasterAccountId = $Env:NEW_RELIC_ACCOUNT_ID  # Replace with your actual New Relic Master Account ID
+# ENTRY POINT MAIN()
+Param(
+    [Parameter(Mandatory=$True)]
+    [String] $accountId,
+    [Parameter(Mandatory=$True)]
+    [String] $apiKey,
+    [Parameter(Mandatory=$True)]
+    [String] $apiEndpoint
+)
 
 # File path for synthetics results in the same directory as the script
 $syntheticsResultFilePath = Join-Path (Get-Location).path "synthetics_results.csv"
@@ -14,7 +20,7 @@ $mainQuery = ConvertTo-Json @{
     "query" = @"
         {
             actor {
-                account(id: $MasterAccountId) {
+                account(id: $accountId) {
                     subAccounts: nrql(query: "SELECT uniques(consumingAccountId) as 'consumingAccountIds' FROM NrConsumption SINCE 14 DAYS AGO", timeout: 90) {
                         results
                     }
@@ -25,7 +31,7 @@ $mainQuery = ConvertTo-Json @{
 }
 
 # Sending the request for the main query
-$mainResponse = Invoke-RestMethod -Uri "https://api.newrelic.com/graphql" -Method Post -Headers @{ "Api-key" = $API_KEY; "Content-Type" = "application/json"} -Body $mainQuery
+$mainResponse = Invoke-RestMethod -Uri "https://api.newrelic.com/graphql" -Method Post -Headers @{ "Api-key" = $apiKey; "Content-Type" = "application/json"} -Body $mainQuery
 
 # Log the consuming account IDs from the main query
 $consumingAccountIdsRaw = $mainResponse.data.actor.account.subAccounts.results[0].consumingAccountIds
@@ -51,7 +57,7 @@ foreach ($SubAccountId in $consumingAccountIds) {
     }
 
     # Sending the synthetics sub-query for each sub-account
-    $subResponse = Invoke-RestMethod -Uri "https://api.newrelic.com/graphql" -Method Post -Headers @{ "Api-key" = $API_KEY; "Content-Type" = "application/json"} -Body $subQuery
+    $subResponse = Invoke-RestMethod -Uri "https://api.newrelic.com/graphql" -Method Post -Headers @{ "Api-key" = $apiKey; "Content-Type" = "application/json"} -Body $subQuery
 
     # Write the results for each sub-account to the synthetics file
     foreach ($result in $subResponse.data.actor.account.synthetics.results) {

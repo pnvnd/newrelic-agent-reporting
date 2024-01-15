@@ -1,10 +1,16 @@
+#!/usr/bin/env pwsh
+
 # Script version: 1.9 - mobile agent list results saved to a file
 
-# Generate a User API Key for a personal account
-$API_KEY = $Env:NEW_RELIC_USER_KEY  # Replace with your actual New Relic User API Key
-
-# Master account ID
-$MasterAccountId = $Env:NEW_RELIC_ACCOUNT_ID  # Replace with your actual New Relic Master Account ID
+# ENTRY POINT MAIN()
+Param(
+    [Parameter(Mandatory=$True)]
+    [String] $accountId,
+    [Parameter(Mandatory=$True)]
+    [String] $apiKey,
+    [Parameter(Mandatory=$True)]
+    [String] $apiEndpoint
+)
 
 # File path for mobile results in the same directory as the script
 $mobileResultFilePath = Join-Path (Get-Location).path "mobile_results.csv"

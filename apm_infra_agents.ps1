@@ -1,10 +1,16 @@
+#!/usr/bin/env pwsh
+
 # Script version: 1.5 - apm and infra agent list results saved to a file
 
-# Generate a User API Key for a personal account
-$API_KEY = $Env:NEW_RELIC_USER_KEY  # Replace with your actual New Relic User API Key
-
-# Master account ID
-$MasterAccountId = $Env:NEW_RELIC_ACCOUNT_ID  # Replace with your actual New Relic Master Account ID
+# ENTRY POINT MAIN()
+Param(
+    [Parameter(Mandatory=$True)]
+    [String] $accountId,
+    [Parameter(Mandatory=$True)]
+    [String] $apiKey,
+    [Parameter(Mandatory=$True)]
+    [String] $apiEndpoint
+)
 
 # File paths for apm and infra results in the same directory as the script
 $apmFilePath = Join-Path (Get-Location).path "apm_results.csv"
@@ -15,7 +21,7 @@ $subAccountQuery = ConvertTo-Json @{
     "query" = @"
         {
             actor {
-                account(id: $MasterAccountId) {
+                account(id: $accountId) {
                     subAccounts: nrql(query: "FROM NrDailyUsage SELECT uniques(subAccountId) as 'subAccountIds' SINCE 7 DAYS AGO LIMIT MAX", timeout: 90) {
                         results
                     }
@@ -26,7 +32,7 @@ $subAccountQuery = ConvertTo-Json @{
 }
 
 # Sending the request to get sub-account IDs
-$subAccountResponse = Invoke-RestMethod -Uri "https://api.newrelic.com/graphql" -Method Post -Headers @{ "Api-key" = $API_KEY; "Content-Type" = "application/json"} -Body $subAccountQuery
+$subAccountResponse = Invoke-RestMethod -Uri $apiEndpoint -Method Post -Headers @{ "Api-key" = $apiKey; "Content-Type" = "application/json"} -Body $subAccountQuery
 
 # Extract sub-account IDs from response
 $subAccountIds = $subAccountResponse.data.actor.account.subAccounts.results[0].subAccountIds
@@ -37,7 +43,7 @@ foreach ($SubAccountId in $subAccountIds) {
         "query" = @"
             {
                 actor {
-                    account(id: $MasterAccountId) {
+                    account(id: $accountId) {
                         apm: nrql(query: "SELECT count(*) FROM NrDailyUsage SINCE 7 DAYS AGO WHERE apmAgentVersion IS NOT NULL AND subAccountId = '$SubAccountId' LIMIT MAX FACET subAccountName, agentHostname, apmAppName, apmAgentVersion", timeout: 90) {
                             results
                         }
@@ -51,7 +57,7 @@ foreach ($SubAccountId in $subAccountIds) {
     }
 
     # Sending the detailed query for each sub-account
-    $detailedResponse = Invoke-RestMethod -Uri "https://api.newrelic.com/graphql" -Method Post -Headers @{ "Api-key" = $API_KEY; "Content-Type" = "application/json"} -Body $detailedQuery
+    $detailedResponse = Invoke-RestMethod -Uri $apiEndpoint -Method Post -Headers @{ "Api-key" = $apiKey; "Content-Type" = "application/json"} -Body $detailedQuery
 
     # Write the facets for each sub-account for APM to file
     foreach ($result in $detailedResponse.data.actor.account.apm.results) {
