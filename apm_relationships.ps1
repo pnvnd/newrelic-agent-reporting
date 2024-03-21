@@ -110,12 +110,12 @@ if ($REQ) {
     $instances = $REP.data.actor.entity.relatedEntities.results
     foreach ($instance in $instances) {
         $results += [PSCustomObject]@{
-            app = $REP.data.actor.entity.name
-            source_name = $instance.source.entity.name
+            apm_entity = $REP.data.actor.entity.name
             source_type = $instance.source.entity.type
+            source_name = $instance.source.entity.name
             relationship = $instance.type
-            target_name = $instance.target.entity.name
             target_type = $instance.target.entity.type
+            target_name = $instance.target.entity.name
         }
     }
 }
