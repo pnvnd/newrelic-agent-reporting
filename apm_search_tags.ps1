@@ -16,10 +16,9 @@ while ($cursor -ne "cursor:""""") {
 {
   actor {
     entitySearch(
-      query: "domain='INFRA' AND type='HOST' AND tags.label.application='jenkins'"
-      options: {tagFilter: "label.jenkins_version"}
+      query: "domain IN ('APM','INFRA') AND type IN ('APPLICATION','HOST') AND reporting='true'"
+      options: {tagFilter: "appid"}
     ) {
-      count
       results($cursor) {
         entities {
           guid
@@ -66,6 +65,6 @@ while ($cursor -ne "cursor:""""") {
 
 # Extract "name" and "id" from the entities
 $entities 
-| Select-Object @{Name="AccountName"; Expression={$_.account.name}}, @{Name="AccountId"; Expression={$_.account.id}}, domain, type, entityType, name, guid, @{Name="tags.key"; Expression={$_.tags.key}}, @{Name="tags.values"; Expression={$_.tags.values}}
+| Select-Object @{Name="AccountName"; Expression={$_.account.name}}, @{Name="AccountId"; Expression={$_.account.id}}, domain, type, entityType, name, guid, @{Name="New Relic Link"; Expression={"https://one.newrelic.com/redirect/entity/"+$_.guid}}, @{Name="tags.key"; Expression={$_.tags.key}}, @{Name="tags.values"; Expression={$_.tags.values}}
 | ConvertTo-CSV -NoTypeInformation 
-| Add-Content -Path "infra_tagged.csv"
+| Add-Content -Path "apm_tagged.csv"
