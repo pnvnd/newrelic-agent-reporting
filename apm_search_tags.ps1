@@ -46,7 +46,7 @@ while ($cursor -ne "cursor:""""") {
   # Post request to GraphQL
   $REQUEST = Invoke-WebRequest -Uri $apiEndpoint `
     -Method POST `
-    -Headers @{"Api-Key" = $apiKey } `
+    -Headers @{ "Api-Key" = $apiKey } `
     -ContentType "application/json" `
     -Body $QUERY
 
