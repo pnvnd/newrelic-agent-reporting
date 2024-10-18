@@ -9,7 +9,7 @@ This is a slow process. Only use this if you are expecting more than 5000 record
 
  https://docs.newrelic.com/docs/apis/nerdgraph/examples/nerdgraph-historical-data-export/
 #>
-
+$ProgressPreference = "SilentlyContinue"
 
 $apiEndpoint = "https://api.newrelic.com/graphql"
 $apiKey = "NRAK-XXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -55,7 +55,7 @@ Write-Output "Export ID is: $exportId`n"
 $percentComplete = 0
 
 while ($percentComplete -lt 100) {
-$QUERY = @{"query" = @"
+  $QUERY = @{"query" = @"
 {
   actor {
     account(id: $accountId) {
@@ -72,24 +72,24 @@ $QUERY = @{"query" = @"
   }
 }
 "@
-    } | ConvertTo-Json
+  } | ConvertTo-Json
 
-$REQUEST = Invoke-WebRequest -Uri $apiEndpoint `
-  -Method Post `
-  -Headers @{ "Api-Key" = $apiKey } `
-  -ContentType "application/json" `
-  -Body $QUERY
+  $REQUEST = Invoke-WebRequest -Uri $apiEndpoint `
+    -Method POST `
+    -Headers @{ "Api-Key" = $apiKey } `
+    -ContentType "application/json" `
+    -Body $QUERY
 
-$RESPONSE = $REQUEST | Select-Object Content -ExpandProperty Content | ConvertFrom-Json
+  $RESPONSE = $REQUEST | Select-Object Content -ExpandProperty Content | ConvertFrom-Json
 
-$percentComplete = $RESPONSE.data.actor.account.historicalDataExport.export.percentComplete
+  $percentComplete = $RESPONSE.data.actor.account.historicalDataExport.export.percentComplete
 
-if ($percentComplete -lt 100) {
+  if ($percentComplete -lt 100) {
     Write-Output "Progress: $percentComplete%"
     Start-Sleep -Seconds 60
-} else {
+  } else {
     Write-Output "Progress: $percentComplete%"
-}
+  }
 }
 
 # Step 3: Store the results URLs
@@ -99,52 +99,56 @@ Write-Output $downloadLinks
 # Step 4: Stream each file, uncompress, and combine into a single CSV
 $combinedCsv = @()
 foreach ($link in $downloadLinks) {
-    # Download the .gz file
-    $gzData = Invoke-RestMethod -Uri $link -Method Get -OutFile 'temp.json.gz'
+  # Download the .gz file
+  $tempFile = Join-Path (Get-Location).path 'temp.json.gz'
+  Invoke-WebRequest -Uri $link `
+    -Method GET `
+    -OutFile $tempFile
 
-    # Create a memory stream to hold the decompressed data
-    $memoryStream = New-Object IO.MemoryStream
+  # Create a memory stream to hold the decompressed data
+  $memoryStream = New-Object IO.MemoryStream
 
-    # Open the downloaded .gz file
-    $fileStream = [System.IO.File]::OpenRead('temp.json.gz')
-    $gzipStream = New-Object IO.Compression.GzipStream($fileStream, [System.IO.Compression.CompressionMode]::Decompress)
+  # Open the downloaded .gz file
+  $fileStream = [System.IO.File]::OpenRead($tempFile)
+  $gzipStream = New-Object IO.Compression.GzipStream($fileStream, [System.IO.Compression.CompressionMode]::Decompress)
 
-    # Decompress the file
-    $buffer = New-Object byte[] 4096
-    while (($read = $gzipStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-        $memoryStream.Write($buffer, 0, $read)
-    }
+  # Decompress the file
+  $buffer = New-Object byte[] 4096
+  while (($read = $gzipStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+      $memoryStream.Write($buffer, 0, $read)
+  }
 
-    # Close streams
-    $gzipStream.Close()
-    $fileStream.Close()
+  # Close streams
+  $gzipStream.Close()
+  $fileStream.Close()
 
-    # Convert the memory stream to a string
-    $memoryStream.Position = 0
-    $streamReader = New-Object IO.StreamReader($memoryStream)
-    $jsonString = $streamReader.ReadToEnd()
+  # Convert the memory stream to a string
+  $memoryStream.Position = 0
+  # $streamReader = New-Object IO.StreamReader($memoryStream)
+  $streamReader = New-Object IO.StreamReader($memoryStream, [System.Text.Encoding]::UTF8)
+  $jsonString = $streamReader.ReadToEnd()
 
-    # Parse JSON and convert to CSV format
-    $jsonData = $jsonString | ConvertFrom-Json
-    $attributes = $jsonData | ForEach-Object { $_.attributes }
-    $csv = $attributes | ConvertTo-Csv -NoTypeInformation
+  # Parse JSON and convert to CSV format
+  $jsonData = $jsonString | ConvertFrom-Json
+  $attributes = $jsonData | ForEach-Object { $_.attributes }
+  $csv = $attributes | ConvertTo-Csv -NoTypeInformation
 
-    # Clean up
-    $memoryStream.Close()
-    $streamReader.Close()
-    Remove-Item 'temp.json.gz'
+  # Clean up
+  $memoryStream.Close()
+  $streamReader.Close()
+  Remove-Item 'temp.json.gz'
 
-    # Combine the CSV data, skipping the header if already added
-    if (-not $headerAdded) {
-        $combinedCsv += $csv
-        $headerAdded = $true
-    } else {
-        $combinedCsv += $csv | Select-Object -Skip 1
-    }
+  # Combine the CSV data, skipping the header if already added
+  if (-not $headerAdded) {
+      $combinedCsv += $csv
+      $headerAdded = $true
+  } else {
+      $combinedCsv += $csv | Select-Object -Skip 1
+  }
 }
 
 # Step 5: Write the combined CSV to a file
 $fileName = "historicalDataExport_${exportId}.csv"
 $combinedCsv | Out-File -FilePath $fileName -Encoding utf8
-$filePath = Get-ChildItem $fileName | Select FullName -ExpandProperty FullName
+$filePath = Get-ChildItem $fileName | Select-Object FullName -ExpandProperty FullName
 Write-Output "`nCombined CSV created successfully:`n$filePath"
