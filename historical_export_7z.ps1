@@ -11,7 +11,11 @@ This is a slow process. Only use this if you are expecting more than 5000 record
 #>
 
 $ProgressPreference = "SilentlyContinue"
+
+# This script variant is for Windows PowerShell users, and should also work with PowerShell Core.
 $7zipPath = "C:\Program Files\7-Zip\7z.exe"
+# For MacOS the path should look similar to this with no extension:
+# $7zipPath = "/Users/owner/Applications/7zip/7zz"
 
 $apiEndpoint = "https://api.newrelic.com/graphql"
 $apiKey = "NRAK-XXXXXXXXXXXXXXXXXXXXXXXXXXX"
